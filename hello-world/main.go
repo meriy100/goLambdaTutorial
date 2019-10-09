@@ -1,14 +1,19 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
-	"fmt"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 )
+
+type PersonResponse struct {
+	PersonID string `json:"personID"`
+	PersonName string `json:"personName"`
+	Old int `json:"old"`
+}
 
 var (
 	// DefaultHTTPGetAddress Default Address
@@ -23,6 +28,7 @@ var (
 
 func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	resp, err := http.Get(DefaultHTTPGetAddress)
+
 	if err != nil {
 		return events.APIGatewayProxyResponse{}, err
 	}
@@ -31,17 +37,25 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		return events.APIGatewayProxyResponse{}, ErrNon200Response
 	}
 
-	ip, err := ioutil.ReadAll(resp.Body)
+
+	personID := request.PathParameters["personID"]
+	personName := request.QueryStringParameters["personName"]
+	old := 26
+
+	person := PersonResponse {
+		PersonID: personID,
+		PersonName: personName,
+		Old: old ,
+	}
+
+	jsonBytes, err := json.Marshal(person)
+
 	if err != nil {
 		return events.APIGatewayProxyResponse{}, err
 	}
 
-	if len(ip) == 0 {
-		return events.APIGatewayProxyResponse{}, ErrNoIP
-	}
-
 	return events.APIGatewayProxyResponse{
-		Body:       fmt.Sprintf("Hello, %v", string(ip)),
+		Body:       string(jsonBytes),
 		StatusCode: 200,
 	}, nil
 }
